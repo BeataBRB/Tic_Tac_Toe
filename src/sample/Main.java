@@ -1,174 +1,187 @@
 package sample;
 
 import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.property.SimpleStringProperty;
+
 import javafx.scene.Scene;
-import javafx.scene.text.Text;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.control.*;
+
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 
+import java.util.Random;
+
 public class Main extends Application {
-
-    private static TicTacToeSquare[] board = new TicTacToeSquare[9];
-    private static int boardTracker;
-    private static StringProperty xPlayer = new SimpleStringProperty("X player");
-    private static StringProperty oPlayer = new SimpleStringProperty("O player");
-    private static IntegerProperty xScore = new SimpleIntegerProperty(0);
-    private static IntegerProperty oScore = new SimpleIntegerProperty(0);
-    private static IntegerProperty deadHeat = new SimpleIntegerProperty(0);
-
-    public static void main(String[] args) {
-        launch(args);
-    }
+    private Button[][] board;
+    private Label textX;
+    private Label textY;
+    private Button buttonReset;
+    private char tab[][];
+    private int counterX = 0;
+    private int counterY = 0;
+    private String [] symbol = {"X", "O"};
+    private int player = 0;
+    private  int counter = 0;
 
     @Override
-    public void start(Stage stage) {
-        BorderPane root = new BorderPane();
+    public void start(Stage primaryStage) throws Exception {
 
-        MenuItem newGameItem = new MenuItem("_New Game");
-        newGameItem.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCombination.SHORTCUT_DOWN));
-        newGameItem.setOnAction(e -> newGame());
+        GridPane gridPane = new GridPane();
 
-        MenuItem exitItem = new MenuItem("E_xit");
-        exitItem.setOnAction(e -> Platform.exit());
+        board = new Button[3][3];
 
-        Menu gameMenu = new Menu("_Game");
-        gameMenu.getItems().addAll(newGameItem, exitItem);
-
-        Text xText = new Text();
-        xText.textProperty().bind(Bindings.concat(xPlayer).concat(" wins ").concat(xScore.asString()));
-
-        Text oText = new Text();
-        oText.textProperty().bind(Bindings.concat(oPlayer).concat(" wins ").concat(oScore.asString()));
-
-        Text deadHeatText = new Text();
-        deadHeatText.textProperty().bind(Bindings.concat("Dead-Heat: ").concat(deadHeat.asString()));
-
-        activateMnemonics(gameMenu, newGameItem, exitItem);
-
-        MenuBar menuBar = new MenuBar();
-        menuBar.getMenus().addAll(gameMenu);
-        root.setTop(menuBar);
-
-        GridPane layout = new GridPane();
-        for (int i = 0; i < board.length; i++) {
-            board[i] = new TicTacToeSquare();
-            layout.add(board[i].button(), i / 3, i % 3);
-        }
-        root.setCenter(layout);
-
-        stage.setScene(new Scene(root));
-        stage.setTitle("Tic Tac Toe / Kółko i Krzyżyk");
-        stage.show();
-    }
-
-    public static void evaluateBoard() {
-        for (int i = 0, j = 0; i < 3; i++) {
-            // Poziomy
-            if (checkSet(j++, j++, j++)) {
-                return;
-            }
-            // Pionowy
-            if (checkSet(i, i + 3, i + 6)) {
-                return;
+        int k1 = 11;
+        int w1 = 10;
+        for(int w = 0; w < board.length; w++){
+            for(int k = 0; k < board.length; k++){
+                board[w][k] = new Button("");
+                board[w][k].setId("plansza-pole");
+                board[w][k].setPrefSize(100,100);
+                gridPane.add(board[w][k], w+ w1, k+ k1);
+                gridPane.setHgap(10);
+                gridPane.setVgap(10);
             }
         }
 
-        // Przekątna
-        if (checkSet(0, 4, 8) || checkSet(2, 4, 6)) {
-            return;
-        }
+        Label textLicznik = new Label("Win:");
+        gridPane.add(textLicznik, 2,8);
 
-        if (boardTracker == 8) {
-            gameEndPrompt("No body wins. Dead-Heat!");
-            deadHeat.setValue(deadHeat.getValue() + 1);
-            return;
-        }
+        textX = new Label("X -> 0");
+        gridPane.add(textX, 2,9);
 
-        boardTracker++;
-    }
+        textY = new Label("O -> 0");
+        gridPane.add(textY, 2,10);
 
-    private static boolean checkSet(int square1, int square2, int square3) {
-        if (boardTracker >= 4) {
-            if (board[square1].equals(board[square2]) && board[square2].equals(board[square3])) {
-                gameEndPrompt(checkWinner(board[square1].button().getText()) + " wins!");
-                return true;
+        Button buttonNewGame = new Button("New Game");
+        gridPane.add(buttonNewGame, w1 +1, k1 +4);
+        buttonNewGame.setId("button-new-game");
+
+        // Scena.
+        Scene scene = new Scene(gridPane, 650, 650);
+        // Okna.
+        primaryStage.setScene(scene);
+        primaryStage.setTitle("Tic Tac Toe");
+        primaryStage.show();
+
+        for(int i=0; i<3; i++) {
+            for(int j = 0; j < 3; j++){
+                int finalJ = j;
+                int finalI = i;
+                board[i][j].setOnAction(action -> {
+                    click(finalI, finalJ);
+                });
             }
         }
-        return false;
-    }
 
-    private static void gameEndPrompt(String text) {
-        endGame();
-
-        Stage stage = new Stage();
-        Label label = new Label(text);
-        label.setStyle("-fx-font-weight: bold;");
-
-        Button reset = new Button("New Game");
-        reset.setOnAction(e -> {
-            stage.close();
-            newGame();
+        buttonNewGame.setOnAction(action -> {
+            for(int w = 0; w<3; w++){
+                for(int k =0; k<3; k++){
+                    board[w][k].setText("");
+                    board[w][k].setDisable(false);
+                }
+            }
+            player = 0;
+            textX.setText("X -> " + counterX);
+            textY.setText("O -> " + counterY);
+            counter = 0;
         });
-        reset.setDefaultButton(true);
-
-        HBox layout = new HBox(20);
-        layout.setPadding(new Insets(20));
-        layout.getChildren().addAll(label, reset);
-        layout.setAlignment(Pos.CENTER);
-
-        stage.setScene(new Scene(layout));
-        stage.sizeToScene();
-        stage.show();
     }
 
-    private static void reset(TicTacToeSquare[] board) {
-        for (int i = 0; i < board.length; i++) {
-            board[i].clear();
+    public void click(int i, int j){
+        if(!board[i][j].isDisable()){
+            board[i][j].setText(symbol[player]);
+            board[i][j].setDisable(true);
+            checkIfPlayerWon();
+            player = (player + 1) % 2;
+            counter++;
+        }
+        // ruch komputera:
+        if(player == 1 && counter < 10){
+            Random generator = new Random();
+            int min = 0;
+            int max = 2;
+            int randComputerI = generator.nextInt((max - min) + 1) + min;
+            int randComputerJ = generator.nextInt((max - min) + 1) + min;
+            click(randComputerI, randComputerJ);
         }
     }
 
-    private static void endGame() {
-        for (int i = 0; i < board.length; i++) {
-            board[i].button().setDisable(true);
+    public void  checkIfPlayerWon(){
+        if(board[0][0].getText().equals(symbol[player]) && board[1][1].getText().equals(symbol[player])&& board[2][2].getText().equals(symbol[player]) ){
+            if(board[0][0].getText().equals("X")){
+                textX.setText("X -> " + ++counterX);
+            }else if(board[0][0].getText().equals("O")){
+                textY.setText("O -> " + ++counterY);
+            }
+            alert();
+        }
+        else if(board[0][0].getText().equals(symbol[player]) && board[0][1].getText().equals(symbol[player])&&
+                board[0][2].getText().equals(symbol[player]) ){
+            if(board[0][0].getText().equals("X")){
+                textX.setText("X -> " + ++counterX);
+            }else if(board[0][0].getText().equals("O")){
+                textY.setText("O -> " + ++counterY);
+            }
+            alert();
+        }
+        else if(board[1][0].getText().equals(symbol[player]) && board[1][1].getText().equals(symbol[player])&&
+                board[1][2].getText().equals(symbol[player]) ){
+            if(board[1][0].getText().equals("X")){
+                textX.setText("X -> " + ++counterX);
+            }else if(board[1][0].getText().equals("O")){
+                textY.setText("O -> " + ++counterY);
+            }
+            alert();
+        }
+        else if(board[2][0].getText().equals(symbol[player]) && board[2][1].getText().equals(symbol[player])&&
+                board[2][2].getText().equals(symbol[player]) ){
+            if(board[2][0].getText().equals("X")){
+                textX.setText("X -> " + ++counterX);
+            }else if(board[2][0].getText().equals("O")){
+                textY.setText("O -> " + ++counterY);
+            }
+            alert();
+        }
+        else if(board[0][0].getText().equals(symbol[player]) && board[1][0].getText().equals(symbol[player])&&
+                board[2][0].getText().equals(symbol[player]) ){
+            if(board[0][0].getText().equals("X")){
+                textX.setText("X -> " + ++counterX);
+            }else if(board[0][0].getText().equals("O")){
+                textY.setText("O -> " + ++counterY);
+            }
+            alert();
+        }
+        else if(board[0][1].getText().equals(symbol[player]) && board[1][1].getText().equals(symbol[player])&&
+                board[2][1].getText().equals(symbol[player]) ){
+            if(board[1][1].getText().equals("X")){
+                textX.setText("X -> " + ++counterX);
+            }else if(board[1][1].getText().equals("O")){
+                textY.setText("O -> " + ++counterY);
+            }
+            alert();
+        }
+        else if(board[2][0].getText().equals(symbol[player]) && board[1][1].getText().equals(symbol[player])&&
+                board[0][2].getText().equals(symbol[player]) ){
+            if(board[2][0].getText().equals("X")){
+                textX.setText("X -> " + ++counterX);
+            }else if(board[2][0].getText().equals("O")){
+                textY.setText("O -> " + ++counterY);
+            }
+            alert();
         }
     }
-
-    private void activateMnemonics(MenuItem... items) {
-        for (MenuItem item : items) {
-            item.setMnemonicParsing(true);
+    public void alert(){
+        for(int i =0; i<3; i++){
+            for(int j =0; j<3; j++){
+                board[i][j].setDisable(true);
+            }
         }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Congratulations");
+        alert.setHeaderText(null);
+        alert.setContentText("Win: " + symbol[player]);
+        player = -1;
+        alert.showAndWait();
     }
 
-    private static void newGame() {
-        boardTracker = 0;
-        reset(board);
-    }
-
-    private static String checkWinner(String winner) {
-        if (winner.equals("X")) {
-            xScore.setValue(xScore.getValue() + 1);
-            return xPlayer.getValue();
-        } else {
-            oScore.setValue(oScore.getValue() + 1);
-            return oPlayer.getValue();
-        }
-    }
 }
+
